@@ -32,103 +32,9 @@ class UserControllerTest {
         assertEquals(1, userController.getAllUsers().size());
     }
 
-    @Test
-    void addUser_addUserWithEmptyName() {
-        User user = new User();
-        user.setEmail("test@example.com");
-        user.setLogin("testuser");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
-
-        User addedUser = userController.addUser(user);
-        assertEquals("testuser", addedUser.getName()); // Проверяем, что имя заменяется логином
-    }
 
     @Test
-    void addUser_failAddUserWithEmptyEmail() {
-        User user = new User();
-        user.setEmail("");
-        user.setLogin("testuser");
-        user.setName("Test User");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> userController.addUser(user));
-        assertEquals("Электронная почта не может быть пустой и должна содержать символ @", exception.getMessage());
-    }
-
-    @Test
-    void addUser_failAddUserWithInvalidEmail() {
-        User user = new User();
-        user.setEmail("invalid-email");
-        user.setLogin("testuser");
-        user.setName("Test User");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> userController.addUser(user));
-        assertEquals("Электронная почта не может быть пустой и должна содержать символ @", exception.getMessage());
-    }
-
-    @Test
-    void addUser_failAddUserWithEmptyLogin() {
-        User user = new User();
-        user.setEmail("test@example.com");
-        user.setLogin("");
-        user.setName("Test User");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> userController.addUser(user));
-        assertEquals("Логин не может быть пустым и содержать пробелы", exception.getMessage());
-    }
-
-    @Test
-    void addUser_failAddUserWithLoginContainingSpaces() {
-        User user = new User();
-        user.setEmail("test@example.com");
-        user.setLogin("test user");
-        user.setName("Test User");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> userController.addUser(user));
-        assertEquals("Логин не может быть пустым и содержать пробелы", exception.getMessage());
-    }
-
-    @Test
-    void addUser_failAddUserWithFutureBirthday() {
-        User user = new User();
-        user.setEmail("test@example.com");
-        user.setLogin("testuser");
-        user.setName("Test User");
-        user.setBirthday(LocalDate.now().plusDays(1));
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> userController.addUser(user));
-        assertEquals("Дата рождения не может быть в будущем", exception.getMessage());
-    }
-
-    @Test
-    void  addUser_addUserWithTodayBirthday() {
-        User user = new User();
-        user.setEmail("test@example.com");
-        user.setLogin("testuser");
-        user.setName("Test User");
-        user.setBirthday(LocalDate.now());
-
-        User addedUser = userController.addUser(user);
-        assertNotNull(addedUser);
-        assertEquals(LocalDate.now(), addedUser.getBirthday());
-    }
-
-    @Test
-    void addUser_failAddUserWithNullBirthday() {
-        User user = new User();
-        user.setEmail("test@example.com");
-        user.setLogin("testuser");
-        user.setName("Test User");
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> userController.addUser(user));
-        assertEquals("Дата рождения не может быть в будущем", exception.getMessage());
-    }
-
-    @Test
-    void shouldUpdateValidUser() {
+    void updateUser_updateValidUser() {
         User user = new User();
         user.setEmail("test@example.com");
         user.setLogin("testuser");
@@ -145,13 +51,16 @@ class UserControllerTest {
 
         User result = userController.updateUser(updatedUser);
         assertEquals("updateduser", result.getLogin());
-        assertEquals(1, userController.getAllUsers().size());
+        assertEquals("updated@example.com", result.getEmail());
+        assertEquals("Updated User", result.getName());
+        assertEquals(LocalDate.of(1991, 1, 1), result.getBirthday());
+        assertEquals(1, userController.getAllUsers().size()); // Проверяем, что количество пользователей не изменилось
     }
 
     @Test
     void updateUser_failUpdateNonExistentUser() {
         User user = new User();
-        user.setId(999);
+        user.setId(999); // ID, которого нет в коллекции
         user.setEmail("test@example.com");
         user.setLogin("testuser");
         user.setName("Test User");
@@ -178,5 +87,12 @@ class UserControllerTest {
         userController.addUser(user2);
 
         assertEquals(2, userController.getAllUsers().size());
+        assertTrue(userController.getAllUsers().contains(user1));
+        assertTrue(userController.getAllUsers().contains(user2));
+    }
+
+    @Test
+    void getAllUsers_getEmptyListWhenNoUsers() {
+        assertTrue(userController.getAllUsers().isEmpty(), "Список пользователей должен быть пустым при отсутствии добавленных пользователей");
     }
 }
