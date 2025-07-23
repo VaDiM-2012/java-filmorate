@@ -33,14 +33,9 @@ public class FilmController {
             log.error("Фильм с id {} не найден", film.getId());
             throw new ValidationException("Фильм не найден");
         }
-        try {
-            films.put(film.getId(), film);
-            log.info("Фильм успешно обновлен: {}", film.getName());
-            return film;
-        } catch (Exception e) {
-            log.error("Ошибка валидации при обновлении фильма: {}", e.getMessage());
-            throw new ValidationException(e.getMessage());
-        }
+        films.put(film.getId(), film);
+        log.info("Фильм успешно обновлен: {}", film.getName());
+        return film;
     }
 
     @GetMapping

@@ -36,14 +36,9 @@ public class UserController {
             log.error("Пользователь с id {} не найден", user.getId());
             throw new ValidationException("Пользователь не найден");
         }
-        try {
-            users.put(user.getId(), user);
-            log.info("Пользователь успешно обновлен: {}", user.getLogin());
-            return user;
-        } catch (Exception e) {
-            log.error("Ошибка валидации при обновлении пользователя: {}", e.getMessage());
-            throw new ValidationException(e.getMessage());
-        }
+        users.put(user.getId(), user);
+        log.info("Пользователь успешно обновлен: {}", user.getLogin());
+        return user;
     }
 
     @GetMapping
