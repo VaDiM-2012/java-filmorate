@@ -24,13 +24,6 @@ public class UserService {
         User friend = userStorage.getUserById(friendId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + friendId + " не найден"));
 
-        if (user.getFriends() == null) {
-            user.setFriends(new HashSet<>());
-        }
-        if (friend.getFriends() == null) {
-            friend.setFriends(new HashSet<>());
-        }
-
         user.getFriends().add(friendId);
         friend.getFriends().add(userId);
     }
@@ -41,41 +34,29 @@ public class UserService {
         User friend = userStorage.getUserById(friendId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + friendId + " не найден"));
 
-        if (user.getFriends() != null) {
-            user.getFriends().remove(friendId);
-        }
-        if (friend.getFriends() != null) {
-            friend.getFriends().remove(userId);
-        }
+        user.getFriends().remove(friendId);
+        friend.getFriends().remove(userId);
     }
 
     public List<User> getFriends(Integer userId) {
         User user = userStorage.getUserById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
-        if (user.getFriends() == null) {
-            return new ArrayList<>();
-        }
+
         return user.getFriends().stream()
                 .map(id -> userStorage.getUserById(id).orElse(null))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    public List<User> getCommonFriends(Integer userId, Integer otherId) {
+    public List<User> getCommonFriends(int userId, int otherId) {
         User user = userStorage.getUserById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
         User other = userStorage.getUserById(otherId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + otherId + " не найден"));
-
-        Set<Integer> userFriends = user.getFriends() != null ? user.getFriends() : new HashSet<>();
-        Set<Integer> otherFriends = other.getFriends() != null ? other.getFriends() : new HashSet<>();
-
-        Set<Integer> commonFriends = new HashSet<>(userFriends);
-        commonFriends.retainAll(otherFriends);
-
-        return commonFriends.stream()
-                .map(id -> userStorage.getUserById(id).orElse(null))
-                .filter(Objects::nonNull)
+        return user.getFriends().stream()
+                .filter(other.getFriends()::contains)
+                .map(id -> userStorage.getUserById(id)
+                        .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден")))
                 .collect(Collectors.toList());
     }
 }
