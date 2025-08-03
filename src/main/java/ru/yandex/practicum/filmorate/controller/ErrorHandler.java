@@ -9,37 +9,36 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 
-import java.util.Map;
-
 @RestControllerAdvice
 @Slf4j
 public class ErrorHandler {
 
-    @ExceptionHandler(ValidationException.class)
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidationException(ValidationException e) {
+    public ErrorResponse handleValidationException(final ValidationException e) {
         log.error("Ошибка валидации: {}", e.getMessage());
-        return Map.of("error", e.getMessage());
+        return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        log.error("Ошибка валидации: {}", e.getMessage());
-        return Map.of("error", e.getBindingResult().getAllErrors().get(0).getDefaultMessage());
+    public ErrorResponse handleMethodArgumentNotValidException(final MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getAllErrors().get(0).getDefaultMessage();
+        log.error("Ошибка валидации: {}", message);
+        return new ErrorResponse(message);
     }
 
-    @ExceptionHandler(NotFoundException.class)
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, String> handleNotFoundException(NotFoundException e) {
+    public ErrorResponse handleNotFoundException(final NotFoundException e) {
         log.error("Ресурс не найден: {}", e.getMessage());
-        return Map.of("error", e.getMessage());
+        return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, String> handleServerException(Exception e) {
+    public ErrorResponse handleServerException(final Exception e) {
         log.error("Внутренняя ошибка сервера: {}", e.getMessage());
-        return Map.of("error", "Внутренняя ошибка сервера");
+        return new ErrorResponse("Внутренняя ошибка сервера");
     }
 }

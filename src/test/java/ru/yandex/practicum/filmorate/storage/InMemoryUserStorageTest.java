@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.storage;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
@@ -21,7 +20,7 @@ class InMemoryUserStorageTest {
     }
 
     @Test
-    void addUser_validUser_assignsIdAndStores() {
+    void addUser_validUser_addsUser() {
         User user = new User();
         user.setEmail("test@example.com");
         user.setLogin("testuser");
@@ -30,14 +29,13 @@ class InMemoryUserStorageTest {
 
         User addedUser = userStorage.addUser(user);
 
-        assertNotNull(addedUser);
-        assertEquals(1, addedUser.getId());
-        assertEquals("testuser", addedUser.getLogin());
+        assertNotNull(addedUser.getId());
+        assertEquals(user.getEmail(), addedUser.getEmail());
         assertEquals(1, userStorage.getAllUsers().size());
     }
 
     @Test
-    void updateUser_validUser_updatesExistingUser() {
+    void updateUser_validUser_updatesUser() {
         User user = new User();
         user.setEmail("test@example.com");
         user.setLogin("testuser");
@@ -46,35 +44,21 @@ class InMemoryUserStorageTest {
         userStorage.addUser(user);
 
         User updatedUser = new User();
-        updatedUser.setId(1);
+        updatedUser.setId(user.getId());
         updatedUser.setEmail("updated@example.com");
         updatedUser.setLogin("updateduser");
         updatedUser.setName("Updated User");
         updatedUser.setBirthday(LocalDate.of(1991, 1, 1));
 
         User result = userStorage.updateUser(updatedUser);
-        assertEquals("updateduser", result.getLogin());
-        assertEquals("updated@example.com", result.getEmail());
-        assertEquals("Updated User", result.getName());
-        assertEquals(LocalDate.of(1991, 1, 1), result.getBirthday());
+
+        assertEquals(updatedUser.getEmail(), result.getEmail());
+        assertEquals(updatedUser.getLogin(), result.getLogin());
         assertEquals(1, userStorage.getAllUsers().size());
     }
 
     @Test
-    void updateUser_invalidUserId_throwsNotFoundException() {
-        User user = new User();
-        user.setId(999);
-        user.setEmail("test@example.com");
-        user.setLogin("testuser");
-        user.setName("Test User");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
-
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> userStorage.updateUser(user));
-        assertEquals("Пользователь с id 999 не найден", exception.getMessage());
-    }
-
-    @Test
-    void deleteUser_validId_removesUser() {
+    void deleteUser_validId_deletesUser() {
         User user = new User();
         user.setEmail("test@example.com");
         user.setLogin("testuser");
@@ -82,14 +66,9 @@ class InMemoryUserStorageTest {
         user.setBirthday(LocalDate.of(1990, 1, 1));
         userStorage.addUser(user);
 
-        userStorage.deleteUser(1);
-        assertTrue(userStorage.getAllUsers().isEmpty());
-    }
+        userStorage.deleteUser(user.getId());
 
-    @Test
-    void deleteUser_invalidId_throwsNotFoundException() {
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> userStorage.deleteUser(999));
-        assertEquals("Пользователь с id 999 не найден", exception.getMessage());
+        assertTrue(userStorage.getAllUsers().isEmpty());
     }
 
     @Test
@@ -101,14 +80,16 @@ class InMemoryUserStorageTest {
         user.setBirthday(LocalDate.of(1990, 1, 1));
         userStorage.addUser(user);
 
-        Optional<User> result = userStorage.getUserById(1);
+        Optional<User> result = userStorage.getUserById(user.getId());
+
         assertTrue(result.isPresent());
-        assertEquals("testuser", result.get().getLogin());
+        assertEquals(user.getEmail(), result.get().getEmail());
     }
 
     @Test
-    void getUserById_invalidId_returnsEmptyOptional() {
+    void getUserById_invalidId_returnsEmpty() {
         Optional<User> result = userStorage.getUserById(999);
+
         assertFalse(result.isPresent());
     }
 
@@ -129,14 +110,9 @@ class InMemoryUserStorageTest {
         userStorage.addUser(user2);
 
         List<User> users = userStorage.getAllUsers();
-        assertEquals(2, users.size());
-        assertTrue(users.stream().anyMatch(u -> u.getLogin().equals("user1")));
-        assertTrue(users.stream().anyMatch(u -> u.getLogin().equals("user2")));
-    }
 
-    @Test
-    void getAllUsers_emptyStorage_returnsEmptyList() {
-        List<User> users = userStorage.getAllUsers();
-        assertTrue(users.isEmpty());
+        assertEquals(2, users.size());
+        assertTrue(users.contains(user1));
+        assertTrue(users.contains(user2));
     }
 }

@@ -5,7 +5,6 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
 
 import java.time.LocalDate;
@@ -91,18 +90,6 @@ class FilmTest {
         Set<ConstraintViolation<Film>> violations = validator.validate(film);
         assertFalse(violations.isEmpty(), "Дата релиза не должна быть null");
         assertEquals("Дата релиза не может быть пустой", violations.iterator().next().getMessage());
-    }
-
-    @Test
-    void film_earlyReleaseDate_throwsValidationException() {
-        Film film = new Film();
-        film.setName("Test Film");
-        film.setDescription("Description");
-        film.setReleaseDate(LocalDate.of(1895, 12, 27));
-        film.setDuration(120);
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> filmStorage.addFilm(film));
-        assertEquals("Дата релиза не может быть раньше 28 декабря 1895 года", exception.getMessage());
     }
 
     @Test

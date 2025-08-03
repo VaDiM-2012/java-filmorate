@@ -1,81 +1,80 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
 @RequestMapping("/films")
 @Slf4j
+@RequiredArgsConstructor
 public class FilmController {
-    private final FilmStorage filmStorage;
-    private final FilmService filmService;
 
-    @Autowired
-    public FilmController(FilmStorage filmStorage, FilmService filmService) {
-        this.filmStorage = filmStorage;
-        this.filmService = filmService;
-    }
+    private final FilmService filmService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Film addFilm(@Valid @RequestBody Film film) {
-        log.info("Добавление нового фильма: {}", film.getName());
-        Film addedFilm = filmStorage.addFilm(film);
-        log.info("Фильм успешно добавлен: {}", film.getName());
-        return addedFilm;
+        log.info("Добавление фильма: {}", film.getName());
+        validateReleaseDate(film.getReleaseDate());
+        return filmService.addFilm(film);
     }
 
     @PutMapping
-    @ResponseStatus(HttpStatus.OK)
     public Film updateFilm(@Valid @RequestBody Film film) {
         log.info("Обновление фильма с id: {}", film.getId());
-        Film updatedFilm = filmStorage.updateFilm(film);
-        log.info("Фильм успешно обновлен: {}", film.getName());
-        return updatedFilm;
+        validateReleaseDate(film.getReleaseDate());
+        return filmService.updateFilm(film);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteFilm(@PathVariable Integer id) {
+        log.info("Удаление фильма с id: {}", id);
+        filmService.deleteFilm(id);
     }
 
     @GetMapping
-    @ResponseStatus(HttpStatus.OK)
     public List<Film> getAllFilms() {
-        log.info("Получение списка всех фильмов");
-        return filmStorage.getAllFilms();
+        log.info("Получение всех фильмов");
+        return filmService.getAllFilms();
     }
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public Film getFilmById(@PathVariable Integer id) {
         log.info("Получение фильма с id: {}", id);
-        return filmStorage.getFilmById(id)
-                .orElseThrow(() -> new NotFoundException("Фильм с id " + id + " не найден"));
+        return filmService.getFilmById(id);
     }
 
     @PutMapping("/{id}/like/{userId}")
-    @ResponseStatus(HttpStatus.OK)
     public void addLike(@PathVariable Integer id, @PathVariable Integer userId) {
-        log.info("Пользователь {} ставит лайк фильму {}", userId, id);
+        log.info("Добавление лайка фильму {} от пользователя {}", id, userId);
         filmService.addLike(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
-    @ResponseStatus(HttpStatus.OK)
     public void removeLike(@PathVariable Integer id, @PathVariable Integer userId) {
-        log.info("Пользователь {} удаляет лайк с фильма {}", userId, id);
+        log.info("Удаление лайка фильма {} от пользователя {}", id, userId);
         filmService.removeLike(id, userId);
     }
 
     @GetMapping("/popular")
-    @ResponseStatus(HttpStatus.OK)
     public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") Integer count) {
         log.info("Получение {} популярных фильмов", count);
         return filmService.getPopularFilms(count);
+    }
+
+    private void validateReleaseDate(LocalDate releaseDate) {
+        if (releaseDate.isBefore(LocalDate.of(1895, 12, 28))) {
+            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
+        }
     }
 }
