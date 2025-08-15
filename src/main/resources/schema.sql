@@ -1,0 +1,60 @@
+CREATE TABLE IF NOT EXISTS MPA_RATINGS (
+    mpa_id VARCHAR(10) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS FILMS (
+    film_id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    description VARCHAR(200),
+    release_date DATE NOT NULL,
+    duration INT NOT NULL,
+    mpa_id VARCHAR(10) NOT NULL,
+    FOREIGN KEY (mpa_id) REFERENCES MPA_RATINGS(mpa_id)
+);
+
+CREATE TABLE IF NOT EXISTS GENRE (
+    genre_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS FILM_GENRE (
+    film_id INT NOT NULL,
+    genre_id INT NOT NULL,
+    PRIMARY KEY (film_id, genre_id),
+    FOREIGN KEY (film_id) REFERENCES FILMS(film_id),
+    FOREIGN KEY (genre_id) REFERENCES GENRE(genre_id)
+);
+
+CREATE TABLE IF NOT EXISTS USERS (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(255) NOT NULL,
+    login VARCHAR(255) NOT NULL,
+    name VARCHAR(255),
+    birthday DATE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS FRIENDSHIP_STATUS (
+    status_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS FRIENDSHIP (
+    user_id INT NOT NULL,
+    friend_id INT NOT NULL,
+    status_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, friend_id),
+    FOREIGN KEY (user_id) REFERENCES USERS(user_id),
+    FOREIGN KEY (friend_id) REFERENCES USERS(user_id),
+    FOREIGN KEY (status_id) REFERENCES FRIENDSHIP_STATUS(status_id)
+);
+
+CREATE TABLE IF NOT EXISTS LIKES (
+    user_id INT NOT NULL,
+    film_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, film_id),
+    FOREIGN KEY (user_id) REFERENCES USERS(user_id),
+    FOREIGN KEY (film_id) REFERENCES FILMS(film_id)
+);
