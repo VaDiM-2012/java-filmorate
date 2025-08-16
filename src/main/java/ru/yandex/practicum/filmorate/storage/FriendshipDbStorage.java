@@ -14,12 +14,13 @@ import java.util.List;
 public class FriendshipDbStorage {
     private final JdbcTemplate jdbcTemplate;
 
-    public void addFriend(int userId, int friendId) {
+    public void addFriend(Integer userId, Integer friendId) {
         String sql = "INSERT INTO friendship (user_id, friend_id, status_id) VALUES (?, ?, ?)";
-        jdbcTemplate.update(sql, userId, friendId, 2); // 2 - unconfirmed
+        jdbcTemplate.update(sql, userId, friendId, 2); // unconfirmed status
     }
 
-    public void removeFriend(int userId, int friendId) {
+
+    public void removeFriend(Integer userId, Integer friendId) {
         String sql = "DELETE FROM friendship WHERE user_id = ? AND friend_id = ?";
         jdbcTemplate.update(sql, userId, friendId);
     }

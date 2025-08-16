@@ -1,29 +1,39 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
-import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.FilmDbStorage;
+import ru.yandex.practicum.filmorate.storage.GenreDbStorage;
+import ru.yandex.practicum.filmorate.storage.LikeDbStorage;
+import ru.yandex.practicum.filmorate.storage.MpaDbStorage;
+import ru.yandex.practicum.filmorate.storage.UserDbStorage;
 
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@JdbcTest
+@AutoConfigureTestDatabase
+@Import({FilmService.class, FilmDbStorage.class, UserDbStorage.class, LikeDbStorage.class, MpaDbStorage.class, GenreDbStorage.class})
 class FilmServiceTest {
 
-    private FilmService filmService;
-    private InMemoryFilmStorage filmStorage;
-    private InMemoryUserStorage userStorage;
+    private final FilmService filmService;
+    private final FilmDbStorage filmStorage;
+    private final UserDbStorage userStorage;
 
-    @BeforeEach
-    void setUp() {
-        filmStorage = new InMemoryFilmStorage();
-        userStorage = new InMemoryUserStorage();
-        filmService = new FilmService(filmStorage, userStorage);
+    @Autowired
+    FilmServiceTest(FilmService filmService, FilmDbStorage filmStorage, UserDbStorage userStorage) {
+        this.filmService = filmService;
+        this.filmStorage = filmStorage;
+        this.userStorage = userStorage;
     }
 
     @Test
@@ -33,6 +43,9 @@ class FilmServiceTest {
         film.setDescription("Description");
         film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(120);
+        Mpa mpa = new Mpa();
+        mpa.setId(1);
+        film.setMpa(mpa);
         filmStorage.addFilm(film);
 
         User user = new User();
@@ -42,12 +55,10 @@ class FilmServiceTest {
         user.setBirthday(LocalDate.of(1990, 1, 1));
         userStorage.addUser(user);
 
-        filmService.addLike(1, 1);
+        filmService.addLike(film.getId(), user.getId());
 
-        Film updatedFilm = filmStorage.getFilmById(1).get();
-        assertNotNull(updatedFilm.getLikes());
-        assertTrue(updatedFilm.getLikes().contains(1));
-        assertEquals(1, updatedFilm.getLikes().size());
+        Film updatedFilm = filmStorage.getFilmById(film.getId()).orElseThrow();
+        assertEquals(1, updatedFilm.getRate(), "Rate should be 1 after adding a like");
     }
 
     @Test
@@ -59,7 +70,7 @@ class FilmServiceTest {
         user.setBirthday(LocalDate.of(1990, 1, 1));
         userStorage.addUser(user);
 
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> filmService.addLike(999, 1));
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> filmService.addLike(999, user.getId()));
         assertEquals("Фильм с id 999 не найден", exception.getMessage());
     }
 
@@ -70,9 +81,12 @@ class FilmServiceTest {
         film.setDescription("Description");
         film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(120);
+        Mpa mpa = new Mpa();
+        mpa.setId(1);
+        film.setMpa(mpa);
         filmStorage.addFilm(film);
 
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> filmService.addLike(1, 999));
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> filmService.addLike(film.getId(), 999));
         assertEquals("Пользователь с id 999 не найден", exception.getMessage());
     }
 
@@ -83,6 +97,9 @@ class FilmServiceTest {
         film.setDescription("Description");
         film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(120);
+        Mpa mpa = new Mpa();
+        mpa.setId(1);
+        film.setMpa(mpa);
         filmStorage.addFilm(film);
 
         User user = new User();
@@ -92,13 +109,11 @@ class FilmServiceTest {
         user.setBirthday(LocalDate.of(1990, 1, 1));
         userStorage.addUser(user);
 
-        filmService.addLike(1, 1);
-        filmService.removeLike(1, 1);
+        filmService.addLike(film.getId(), user.getId());
+        filmService.removeLike(film.getId(), user.getId());
 
-        Film updatedFilm = filmStorage.getFilmById(1).get();
-        assertNotNull(updatedFilm.getLikes());
-        assertFalse(updatedFilm.getLikes().contains(1));
-        assertEquals(0, updatedFilm.getLikes().size());
+        Film updatedFilm = filmStorage.getFilmById(film.getId()).orElseThrow();
+        assertEquals(0, updatedFilm.getRate(), "Rate should be 0 after removing the like");
     }
 
     @Test
@@ -110,7 +125,7 @@ class FilmServiceTest {
         user.setBirthday(LocalDate.of(1990, 1, 1));
         userStorage.addUser(user);
 
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> filmService.removeLike(999, 1));
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> filmService.removeLike(999, user.getId()));
         assertEquals("Фильм с id 999 не найден", exception.getMessage());
     }
 
@@ -121,9 +136,12 @@ class FilmServiceTest {
         film.setDescription("Description");
         film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(120);
+        Mpa mpa = new Mpa();
+        mpa.setId(1);
+        film.setMpa(mpa);
         filmStorage.addFilm(film);
 
-        NotFoundException exception = assertThrows(NotFoundException.class, () -> filmService.removeLike(1, 999));
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> filmService.removeLike(film.getId(), 999));
         assertEquals("Пользователь с id 999 не найден", exception.getMessage());
     }
 
@@ -134,6 +152,9 @@ class FilmServiceTest {
         film1.setDescription("Description 1");
         film1.setReleaseDate(LocalDate.of(2000, 1, 1));
         film1.setDuration(120);
+        Mpa mpa1 = new Mpa();
+        mpa1.setId(1);
+        film1.setMpa(mpa1);
         filmStorage.addFilm(film1);
 
         Film film2 = new Film();
@@ -141,6 +162,9 @@ class FilmServiceTest {
         film2.setDescription("Description 2");
         film2.setReleaseDate(LocalDate.of(2001, 1, 1));
         film2.setDuration(150);
+        Mpa mpa2 = new Mpa();
+        mpa2.setId(2);
+        film2.setMpa(mpa2);
         filmStorage.addFilm(film2);
 
         User user1 = new User();
@@ -157,19 +181,19 @@ class FilmServiceTest {
         user2.setBirthday(LocalDate.of(1991, 1, 1));
         userStorage.addUser(user2);
 
-        filmService.addLike(1, 1); // Film 1: 1 лайк
-        filmService.addLike(2, 1); // Film 2: 1 лайк
-        filmService.addLike(1, 2); // Film 1: 2 лайка
+        filmService.addLike(film1.getId(), user1.getId()); // Film 1: 1 like
+        filmService.addLike(film1.getId(), user2.getId()); // Film 1: 2 likes
+        filmService.addLike(film2.getId(), user1.getId()); // Film 2: 1 like
 
         List<Film> popularFilms = filmService.getPopularFilms(2);
         assertEquals(2, popularFilms.size());
-        assertEquals("Film 1", popularFilms.get(0).getName()); // 2 лайка
-        assertEquals("Film 2", popularFilms.get(1).getName()); // 1 лайк
+        assertEquals("Film 1", popularFilms.get(0).getName(), "Film 1 should be first (2 likes)");
+        assertEquals("Film 2", popularFilms.get(1).getName(), "Film 2 should be second (1 like)");
     }
 
     @Test
     void getPopularFilms_emptyListWhenNoFilms() {
         List<Film> popularFilms = filmService.getPopularFilms(10);
-        assertTrue(popularFilms.isEmpty(), "Список должен быть пустым, если нет фильмов");
+        assertTrue(popularFilms.isEmpty(), "List should be empty when no films exist");
     }
 }
