@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS FILM_GENRE (
     film_id INT NOT NULL,
     genre_id INT NOT NULL,
     PRIMARY KEY (film_id, genre_id),
-    FOREIGN KEY (film_id) REFERENCES FILMS(film_id),
+    FOREIGN KEY (film_id) REFERENCES FILMS(film_id) ON DELETE CASCADE,
     FOREIGN KEY (genre_id) REFERENCES GENRE(genre_id)
 );
 
@@ -56,5 +56,5 @@ CREATE TABLE IF NOT EXISTS LIKES (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, film_id),
     FOREIGN KEY (user_id) REFERENCES USERS(user_id),
-    FOREIGN KEY (film_id) REFERENCES FILMS(film_id)
+    FOREIGN KEY (film_id) REFERENCES FILMS(film_id) ON DELETE CASCADE
 );

@@ -63,8 +63,11 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public void deleteFilm(Integer id) {
-        String sql = "DELETE FROM films WHERE film_id = ?";
-        jdbcTemplate.update(sql, id);
+        // Удаляем связанные записи
+        jdbcTemplate.update("DELETE FROM film_genre WHERE film_id = ?", id);
+        jdbcTemplate.update("DELETE FROM likes WHERE film_id = ?", id);
+        // Удаляем фильм
+        jdbcTemplate.update("DELETE FROM films WHERE film_id = ?", id);
     }
 
     @Override
@@ -86,12 +89,67 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getAllFilms() {
         String sql = "SELECT f.film_id, f.title, f.description, f.release_date, f.duration, f.mpa_id, m.name AS mpa_name, " +
-                "(SELECT COUNT(*) FROM likes WHERE film_id = f.film_id) AS likes_count " +
-                "FROM films AS f " +
-                "LEFT JOIN mpa_ratings AS m ON f.mpa_id = m.mpa_id";
-        List<Film> films = jdbcTemplate.query(sql, this::mapRowToFilm);
-        films.forEach(film -> film.setGenres(getFilmGenres(film.getId())));
-        return films;
+                "COUNT(l.user_id) AS likes_count, " +
+                "GROUP_CONCAT(DISTINCT g.genre_id ORDER BY g.genre_id SEPARATOR ',') AS genre_ids, " +
+                "GROUP_CONCAT(DISTINCT g.name ORDER BY g.genre_id SEPARATOR ',') AS genre_names " +
+                "FROM films f " +
+                "LEFT JOIN mpa_ratings m ON f.mpa_id = m.mpa_id " +
+                "LEFT JOIN likes l ON f.film_id = l.film_id " +
+                "LEFT JOIN film_genre fg ON f.film_id = fg.film_id " +
+                "LEFT JOIN genre g ON fg.genre_id = g.genre_id " +
+                "GROUP BY f.film_id";
+        return jdbcTemplate.query(sql, this::mapRowToFilmWithGenres);
+    }
+
+    public List<Film> getPopularFilms(Integer count) {
+        String sql = "SELECT f.film_id, f.title, f.description, f.release_date, f.duration, f.mpa_id, m.name AS mpa_name, " +
+                "COUNT(l.user_id) AS likes_count, " +
+                "GROUP_CONCAT(DISTINCT g.genre_id ORDER BY g.genre_id SEPARATOR ',') AS genre_ids, " +
+                "GROUP_CONCAT(DISTINCT g.name ORDER BY g.genre_id SEPARATOR ',') AS genre_names " +
+                "FROM films f " +
+                "LEFT JOIN likes l ON f.film_id = l.film_id " +
+                "LEFT JOIN mpa_ratings m ON f.mpa_id = m.mpa_id " +
+                "LEFT JOIN film_genre fg ON f.film_id = fg.film_id " +
+                "LEFT JOIN genre g ON fg.genre_id = g.genre_id " +
+                "GROUP BY f.film_id " +
+                "ORDER BY likes_count DESC " +
+                "LIMIT ?";
+        return jdbcTemplate.query(sql, this::mapRowToFilmWithGenres, count);
+    }
+
+    private Film mapRowToFilmWithGenres(ResultSet rs, int rowNum) throws SQLException {
+        Film film = new Film();
+        film.setId(rs.getInt("film_id"));
+        film.setName(rs.getString("title"));
+        film.setDescription(rs.getString("description"));
+        film.setReleaseDate(rs.getDate("release_date").toLocalDate());
+        film.setDuration(rs.getInt("duration"));
+        film.setRate(rs.getInt("likes_count"));
+
+        Integer mpaId = rs.getObject("mpa_id", Integer.class);
+        if (mpaId != null) {
+            Mpa mpa = new Mpa();
+            mpa.setId(mpaId);
+            mpa.setName(rs.getString("mpa_name"));
+            film.setMpa(mpa);
+        }
+
+        String genreIds = rs.getString("genre_ids");
+        String genreNames = rs.getString("genre_names");
+        if (genreIds != null) {
+            String[] ids = genreIds.split(",");
+            String[] names = genreNames.split(",");
+            List<Genre> genres = new java.util.ArrayList<>();
+            for (int i = 0; i < ids.length; i++) {
+                Genre genre = new Genre();
+                genre.setId(Integer.parseInt(ids[i]));
+                genre.setName(names[i]);
+                genres.add(genre);
+            }
+            film.setGenres(genres);
+        }
+
+        return film;
     }
 
     private Film mapRowToFilm(ResultSet resultSet, int rowNum) throws SQLException {

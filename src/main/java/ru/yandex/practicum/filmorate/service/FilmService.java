@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.LikeDbStorage;
 import ru.yandex.practicum.filmorate.storage.MpaDbStorage;
@@ -27,28 +28,30 @@ public class FilmService {
 
     public void addLike(Integer filmId, Integer userId) {
         getFilmByIdOrThrow(filmId);
-        userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
+        getUserByIdOrThrow(userId);
         likeDbStorage.addLike(filmId, userId);
     }
 
     public void removeLike(Integer filmId, Integer userId) {
         getFilmByIdOrThrow(filmId);
-        userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
+        getUserByIdOrThrow(userId);
         likeDbStorage.removeLike(filmId, userId);
     }
 
     public List<Film> getPopularFilms(Integer count) {
-        return likeDbStorage.getPopularFilms(count);
+        return filmStorage.getPopularFilms(count);
     }
 
     public Film addFilm(Film film) {
-        validateMpaAndGenres(film);
+        validateMpa(film);
+        validateGenres(film);
         return filmStorage.addFilm(film);
     }
 
     public Film updateFilm(Film film) {
         getFilmByIdOrThrow(film.getId());
-        validateMpaAndGenres(film);
+        validateMpa(film);
+        validateGenres(film);
         return filmStorage.updateFilm(film);
     }
 
@@ -70,11 +73,19 @@ public class FilmService {
                 .orElseThrow(() -> new NotFoundException("Фильм с id " + filmId + " не найден"));
     }
 
-    private void validateMpaAndGenres(Film film) {
+    private User getUserByIdOrThrow(Integer userId) {
+        return userStorage.getUserById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
+    }
+
+    private void validateMpa(Film film) {
         if (film.getMpa() != null && film.getMpa().getId() != null) {
             mpaDbStorage.getMpaById(film.getMpa().getId())
                     .orElseThrow(() -> new NotFoundException("Рейтинг MPA с id " + film.getMpa().getId() + " не найден"));
         }
+    }
+
+    private void validateGenres(Film film) {
         if (film.getGenres() != null && !film.getGenres().isEmpty()) {
             for (Genre genre : film.getGenres()) {
                 genreDbStorage.getGenreById(genre.getId())
