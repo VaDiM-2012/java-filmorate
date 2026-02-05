@@ -29,9 +29,9 @@ public class FilmController {
     }
 
     @PutMapping
+    @ResponseStatus(HttpStatus.OK)
     public Film updateFilm(@Valid @RequestBody Film film) {
         log.info("Обновление фильма с id: {}", film.getId());
-        validateReleaseDate(film.getReleaseDate());
         return filmService.updateFilm(film);
     }
 
